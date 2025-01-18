@@ -1,5 +1,7 @@
 import express from 'express';
 import { Task } from '../models/task';
+import { DbService } from '../services/db';
+
 
 const router = express.Router();
 
@@ -12,7 +14,7 @@ router.get('/users/:userId/tasks', async function(req, res) {
     const { userId } = req.params;
 
     // TODO: get tasks from database
-    const tasks: Task[] = [];
+    const tasks: Task[] = await DbService.getInstance().getTasks(userId);
 
     res.json(tasks);
   } catch (error: any) {
@@ -23,13 +25,20 @@ router.get('/users/:userId/tasks', async function(req, res) {
 router.post('/users/:userId/tasks', async function(req, res) {
   try {
     const { userId } = req.params;
-    const task = {
+    const task: Task = {
       ...req.body,
       userId,
-      completed: false
+      completed: false,
     };
 
+    // Check that the task has a title
+    if (!task.title) {
+      return res.status(400).json({ error: 'Task title is required' });
+    }
+
+
     // TODO: create task in database
+    await DbService.getInstance().createTask(task);
 
     res.json(task);
   } catch (error: any) {
@@ -40,9 +49,9 @@ router.post('/users/:userId/tasks', async function(req, res) {
 router.get('/tasks/:taskId', async function(req, res) {
   try {
     const { taskId } = req.params;
-    
+
     // TODO: get task from database
-    const task = {};
+    const task = await DbService.getInstance().getTask(taskId);
 
     res.json(task);
   } catch (error: any) {
@@ -53,9 +62,12 @@ router.get('/tasks/:taskId', async function(req, res) {
 router.patch('/tasks/:taskId', async function(req, res) {
   try {
     const { taskId } = req.params;
-    
+
     // TODO: get existing task in database
-    const task = {};
+    const task = await DbService.getInstance().getTask(taskId);
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
     task.completed = Boolean(req.body?.completed);
 
     // TODO: update task in database
@@ -70,8 +82,9 @@ router.patch('/tasks/:taskId', async function(req, res) {
 router.delete('/tasks/:taskId', async function(req, res) {
   try {
     const { taskId } = req.params;
-    
+
     // TODO: delete task in database
+    await DbService.getInstance().deleteTask(taskId);
 
     res.sendStatus(204);
   } catch (error: any) {
